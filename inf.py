@@ -1,13 +1,3 @@
-"""
-@InProceedings{Tian_2020_ECCV,
-  author = {Tian, Meng and Ang Jr, Marcelo H and Lee, Gim Hee},
-  title = {Shape Prior Deformation for Categorical 6D Object Pose and Size Estimation},
-  booktitle = {Proceedings of the European Conference on Computer Vision (ECCV)},
-  month = {August},
-  year = {2020}
-}
-"""
-
 import os
 import argparse
 import numpy as np
@@ -17,7 +7,6 @@ import torch
 from simnet.lib.net.models.auto_encoder import PointCloudAE
 from external.shape_pretraining.dataset.shape_dataset import ShapeDataset
 from utils.tsne import tsne
-
 
 def visualize_shape(name, shape_list, result_dir):
     """ Visualization and save image.
@@ -46,18 +35,16 @@ parser.add_argument('--model', type=str, default='data/ae_checkpoints/model_50_n
 parser.add_argument('--result_dir', type=str, default='results/ae_points', help='directory to save mean shapes')
 parser.add_argument('--gpu', type=str, default='0', help='GPU to use')
 opt = parser.parse_args()
-
 opt.emb_dim = 128
 opt.n_cat = 6
 opt.n_pts = 2048
-
 os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu
 
 estimator = PointCloudAE(opt.emb_dim, opt.n_pts)
 estimator.cuda()
 estimator.load_state_dict(torch.load(opt.model))
 estimator.eval()
-train_dataset = ShapeDataset(opt.h5_file, mode='train', augment=False)
+train_dataset = ShapeDataset(opt.h5_file, mode='val', augment=False)
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
 
 obj_models = []
@@ -74,47 +61,32 @@ for i, data in enumerate(train_dataloader):
     embedding.append(emb)
     obj_models.append(inst_shape)
     catId.append(label)
-
-embedding = np.squeeze(np.array(embedding).astype(np.float64), axis=1)
-catId = np.squeeze((np.array(catId)), axis=1)
-obj_models = np.squeeze(np.array(obj_models), axis=1)
-
-# enbedding visualization
-# Y = tsne(embedding, 2, 50, 30.0)
-# y_bottle = Y[np.where(catId == 0)[0], :]
-# s_bottle = plt.scatter(y_bottle[:, 0], y_bottle[:, 1], s=20, marker='o', c='tab:orange')
-# y_bowl = Y[np.where(catId == 1)[0], :]
-# s_bowl = plt.scatter(y_bowl[:, 0], y_bowl[:, 1], s=20, marker='^', c='tab:blue')
-# y_camera = Y[np.where(catId == 2)[0], :]
-# s_camera = plt.scatter(y_camera[:, 0], y_camera[:, 1], s=20, marker='s', c='tab:olive')
-# y_can = Y[np.where(catId == 3)[0], :]
-# s_can = plt.scatter(y_can[:, 0], y_can[:, 1], s=20, marker='d', c='tab:gray')
-# y_laptop = Y[np.where(catId == 4)[0], :]
-# s_laptop = plt.scatter(y_laptop[:, 0], y_laptop[:, 1], s=20, marker='P', c='tab:purple')
-# y_mug = Y[np.where(catId == 5)[0], :]
-# s_mug = plt.scatter(y_mug[:, 0], y_mug[:, 1], s=20, marker='v', c='tab:brown')
-# plt.legend((s_bottle, s_bowl, s_camera, s_can, s_laptop, s_mug),
-#            ('bottle', 'bowl', 'camera', 'can', 'laptop', 'mug'),
-#            loc='best', ncol=1, fontsize=8, frameon=False)
-# plt.xticks([])
-# plt.yticks([])
-# plt.savefig(os.path.join(opt.result_dir, 'visual_embedding.png'), bbox_inches='tight')
-
+    
 #  mean embedding and mean shape
 mean_emb = np.empty((opt.n_cat, opt.emb_dim), dtype=np.float)
 catId_to_name = {0: 'bottle', 1: 'bowl', 2: 'camera', 3: 'can', 4: 'laptop', 5: 'mug'}
 mean_points = np.empty((opt.n_cat, opt.n_pts, 3), dtype=np.float)
-for i in range(opt.n_cat):
-    mean = np.mean(embedding[np.where(catId==i)[0], :], axis=0, keepdims=False)
-    mean_emb[i] = mean
-    assigned_emb = torch.cuda.FloatTensor(mean[None, :])
-    _, mean_shape = estimator(None, assigned_emb)
-    mean_shape = mean_shape.cpu().detach().numpy()[0]
-    mean_points[i] = mean_shape
-    # save point cloud and visualize
+
+for i in range(len(embedding)):
+    cat = int(catId[i])
+    if cat != 2:
+        continue
+    emb = embedding[i]
+    assigned_emb = torch.cuda.FloatTensor(emb[None, :])
+    _, shape = estimator(None, assigned_emb)
+    shape = shape.cpu().detach().numpy()[0]
     pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(mean_shape)
-    visualize_shape(catId_to_name[i], [pcd], opt.result_dir)
-# save results
-np.save(os.path.join(opt.result_dir, 'mean_embedding'), mean_emb)
-np.save(os.path.join(opt.result_dir, 'mean_points_emb'), mean_points)
+    pcd.points = o3d.utility.Vector3dVector(shape)
+    visualize_shape(catId_to_name[cat], [pcd], opt.result_dir)
+    
+# for i in range(opt.n_cat):
+#     mean = np.mean(embedding[np.where(catId==i)[0], :], axis=0, keepdims=False)
+#     mean_emb[i] = mean
+#     assigned_emb = torch.cuda.FloatTensor(mean[None, :])
+#     _, mean_shape = estimator(None, assigned_emb)
+#     mean_shape = mean_shape.cpu().detach().numpy()[0]
+#     mean_points[i] = mean_shape
+#     # save point cloud and visualize
+#     pcd = o3d.geometry.PointCloud()
+#     pcd.points = o3d.utility.Vector3dVector(mean_shape)
+#     visualize_shape(catId_to_name[i], [pcd], opt.result_dir)

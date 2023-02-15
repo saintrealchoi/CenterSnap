@@ -77,6 +77,9 @@ def add_train_args(parser):
   )
   # keypoint head args
   parser.add_argument("--num_keypoints", default=1, type=int)
+  
+  # for distributed learning
+  parser.add_argument("--gpus", default=0, type=str)
 
 
 

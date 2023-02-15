@@ -5,6 +5,7 @@ import glob
 import numpy as np
 import _pickle as cPickle
 import argparse
+sys.path.append("/home/choisj/git/sj/CenterSnap")
 from utils.shape_utils import sample_points_from_mesh
 
 def save_model_to_hdf5(obj_model_dir, n_points, fps=False, include_distractors=False, with_normal=False):
@@ -31,46 +32,46 @@ def save_model_to_hdf5(obj_model_dir, n_points, fps=False, include_distractors=F
     train_count = 0
     val_count = 0
     # CAMERA
-    for subset in ['train', 'val']:
-        for catId in range(1, 7):
-            synset_dir = os.path.join(obj_model_dir, subset, catId_to_synsetId[catId])
-            inst_list = sorted(os.listdir(synset_dir))
-            for instance in inst_list:
-                path_to_mesh_model = os.path.join(synset_dir, instance, 'model.obj')
-                if instance == 'b9be7cfe653740eb7633a2dd89cec754' or instance =='d3b53f56b4a7b3b3c9f016d57db96408':
-                    continue
-                model_points = sample_points_from_mesh(path_to_mesh_model, n_points, with_normal, fps=fps, ratio=2)
-                model_points = model_points * np.array([[1.0, 1.0, -1.0]])
-                if catId == 6:
-                    shift = mug_meta[instance][0]
-                    scale = mug_meta[instance][1]
-                    model_points = scale * (model_points + shift)
-                if subset == 'train':
-                    train_data[train_count] = model_points
-                    train_label.append(catId)
-                    train_count += 1
-                else:
-                    val_data[val_count] = model_points
-                    val_label.append(catId)
-                    val_count += 1
-        # distractors
-        if include_distractors:
-            for synsetId in distractors_synsetId:
-                synset_dir = os.path.join(obj_model_dir, subset, synsetId)
-                inst_list = sorted(os.listdir(synset_dir))
-                for instance in inst_list:
-                    path_to_mesh_model = os.path.join(synset_dir, instance, 'model.obj')
-                    model_points = sample_points_from_mesh(path_to_mesh_model, n_points, with_normal, fps=fps, ratio=2)
-                    # TODO: check whether need to flip z-axis, currently not used
-                    model_points = model_points * np.array([[1.0, 1.0, -1.0]])
-                    if subset == 'train':
-                        train_data[train_count] = model_points
-                        train_label.append(0)
-                        train_count += 1
-                    else:
-                        val_data[val_count] = model_points
-                        val_label.append(0)
-                        val_count += 1
+    # for subset in ['train', 'val']:
+    #     for catId in range(1, 7):
+    #         synset_dir = os.path.join(obj_model_dir, subset, catId_to_synsetId[catId])
+    #         inst_list = sorted(os.listdir(synset_dir))
+    #         for instance in inst_list:
+    #             path_to_mesh_model = os.path.join(synset_dir, instance, 'model.obj')
+    #             if instance == 'b9be7cfe653740eb7633a2dd89cec754' or instance =='d3b53f56b4a7b3b3c9f016d57db96408':
+    #                 continue
+    #             model_points = sample_points_from_mesh(path_to_mesh_model, n_points, with_normal, fps=fps, ratio=2)
+    #             model_points = model_points * np.array([[1.0, 1.0, -1.0]])
+    #             if catId == 6:
+    #                 shift = mug_meta[instance][0]
+    #                 scale = mug_meta[instance][1]
+    #                 model_points = scale * (model_points + shift)
+    #             if subset == 'train':
+    #                 train_data[train_count] = model_points
+    #                 train_label.append(catId)
+    #                 train_count += 1
+    #             else:
+    #                 val_data[val_count] = model_points
+    #                 val_label.append(catId)
+    #                 val_count += 1
+    #     # distractors
+    #     if include_distractors:
+    #         for synsetId in distractors_synsetId:
+    #             synset_dir = os.path.join(obj_model_dir, subset, synsetId)
+    #             inst_list = sorted(os.listdir(synset_dir))
+    #             for instance in inst_list:
+    #                 path_to_mesh_model = os.path.join(synset_dir, instance, 'model.obj')
+    #                 model_points = sample_points_from_mesh(path_to_mesh_model, n_points, with_normal, fps=fps, ratio=2)
+    #                 # TODO: check whether need to flip z-axis, currently not used
+    #                 model_points = model_points * np.array([[1.0, 1.0, -1.0]])
+    #                 if subset == 'train':
+    #                     train_data[train_count] = model_points
+    #                     train_label.append(0)
+    #                     train_count += 1
+    #                 else:
+    #                     val_data[val_count] = model_points
+    #                     val_label.append(0)
+    #                     val_count += 1
     # Real
     for subset in ['real_train', 'real_test']:
         path_to_mesh_models = glob.glob(os.path.join(obj_model_dir, subset, '*.obj'))

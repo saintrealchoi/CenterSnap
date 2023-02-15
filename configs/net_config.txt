@@ -21,4 +21,4 @@
 --loss_latent_emb_mult=0.1
 --loss_abs_pose_mult=0.1
 --loss_z_centroid_mult=0.1
---wandb_name=NOCS_Train_Synthetic
+--wandb_name=SJ_Centersnap
