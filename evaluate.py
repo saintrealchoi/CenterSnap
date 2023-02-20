@@ -106,7 +106,7 @@ def detect(
             rotated_pc, rotated_box, pred_size = get_gt_pointclouds(abs_pose_outputs[j], shape_out, camera_model = _CAMERA)
             sRT = abs_pose_outputs[j].camera_T_object @ abs_pose_outputs[j].scale_matrix
             #RT output
-            pred_RTs.append(sRT)
+            pred_RTs.append(abs_pose_outputs[j].camera_T_object)
             pred_sizes.append(pred_size)
             
         img_count += 1
