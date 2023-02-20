@@ -49,12 +49,15 @@ def detect(
     model.eval()
     if use_gpu:
         model.cuda()
+        
     data_path = open(os.path.join(data_dir, 'Real', 'test_list.txt')).read().splitlines()
     _CAMERA = camera.NOCS_Real()
     min_confidence = 0.50
 
     img_count = 0
     inst_count = 0
+    
+    torch.cuda.synchronize()
     t_start = time.time()
     t_inference = 0.0
   
@@ -76,29 +79,20 @@ def detect(
         input = input[None, :, :, :]
         if use_gpu:
             input = input.to(torch.device('cuda:0'))
+            
+        torch.cuda.synchronize()
         t_now = time.time()
         with torch.no_grad():
             seg_output, depth_output, small_depth_output, pose_output = model.forward(input)
             latent_emb_outputs, abs_pose_outputs, img_output, scores, indices= pose_output.compute_pointclouds_and_poses(min_confidence,is_target = False)
+        torch.cuda.synchronize()
         t_inference += (time.time() - t_now)
+        
         pred_cls_ids = get_ids_from_seg(seg_output,indices)
 
         auto_encoder_path = os.path.join(data_dir, 'ae_checkpoints', 'model_50_nocs.pth')
         ae = get_auto_encoder(auto_encoder_path)
         
-        depth_vis = depth2inv(torch.tensor(depth).unsqueeze(0).unsqueeze(0))
-        depth_vis = viz_inv_depth(depth_vis)
-        depth_vis = depth_vis*255.0
-        
-        depth_gt = depth2inv(torch.tensor(depth_output.depth_pred).unsqueeze(0))
-        depth_gt = viz_inv_depth(depth_gt)
-        depth_gt = depth_gt*255.0
-        
-        write_pcd = False
-        rotated_pcds = []
-        points_2d = []
-        box_obb = []
-        axes = []
         pred_RTs = []
         pred_sizes = []
         
@@ -109,42 +103,10 @@ def detect(
             emb = emb.cuda()
             _, shape_out = ae(None, emb)
             shape_out = shape_out.cpu().detach().numpy()[0]
-
             rotated_pc, rotated_box, pred_size = get_gt_pointclouds(abs_pose_outputs[j], shape_out, camera_model = _CAMERA)
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(rotated_pc)
-            filename_rotated = str(output_path) + '/pcd_rotated'+str(i)+str(j)+'.ply'
-            if write_pcd:
-                o3d.io.write_point_cloud(filename_rotated, pcd)
-            else:
-                rotated_pcds.append(pcd)
-
-            mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1, origin=[0, 0, 0])
-            T = abs_pose_outputs[j].camera_T_object
-            mesh_frame = mesh_frame.transform(T)
-            rotated_pcds.append(mesh_frame)
-            cylinder_segments = line_set_mesh(rotated_box)
-            for k in range(len(cylinder_segments)):
-                rotated_pcds.append(cylinder_segments[k])
-
-                
-            points_mesh = camera.convert_points_to_homopoints(rotated_pc.T)
-            points_2d_mesh = project(_CAMERA.K_matrix, points_mesh)
-            points_2d_mesh = points_2d_mesh.T
-            points_2d.append(points_2d_mesh)
-            #2D output
-            points_obb = camera.convert_points_to_homopoints(np.array(rotated_box).T)
-            points_2d_obb = project(_CAMERA.K_matrix, points_obb)
-            points_2d_obb = points_2d_obb.T
-            box_obb.append(points_2d_obb)
-            xyz_axis = 0.3*np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 0]]).transpose()
             sRT = abs_pose_outputs[j].camera_T_object @ abs_pose_outputs[j].scale_matrix
-            transformed_axes = transform_coordinates_3d(xyz_axis, sRT)
-            projected_axes = calculate_2d_projections(transformed_axes, _CAMERA.K_matrix[:3,:3])
-
-            axes.append(projected_axes)
             #RT output
-            pred_RTs.append(abs_pose_outputs[j].camera_T_object)
+            pred_RTs.append(sRT)
             pred_sizes.append(pred_size)
             
         img_count += 1
@@ -265,4 +227,3 @@ if __name__ == '__main__':
   detect(hparams, hparams.data_dir, output_path)
   
   evaluate(output_path)
-  
