@@ -3,3 +3,4 @@ results
 data/
 nocs_test_subset
 wandb/
+nohup.out
