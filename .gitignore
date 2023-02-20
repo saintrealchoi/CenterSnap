@@ -2,3 +2,4 @@ results
 .vscode
 data/
 nocs_test_subset
+wandb/
