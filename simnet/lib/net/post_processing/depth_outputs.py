@@ -81,7 +81,8 @@ class DisparityLoss(nn.Module):
       if torch.sum(disparity_gt[batch_idx, :, :]) < 1e-3:
         continue
 
-      single_loss = self.loss(disparity[batch_idx, :, :], disparity_gt[batch_idx, :, :])
+      valid_mask = (disparity_gt[batch_idx] > 0) * (disparity[batch_idx] < _MAX_DISP)
+      single_loss = self.loss(disparity[batch_idx, :, :]*valid_mask, disparity_gt[batch_idx, :, :]*valid_mask)
       valid_count += 1
 
       if self.stdmean_scaled:
