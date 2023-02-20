@@ -349,6 +349,38 @@ def draw_bboxes(img, img_pts, axes, color):
 
     return img
 
+def draw_gt_bboxes(img, img_pts, axes, color):
+    img_pts = np.int32(img_pts).reshape(-1, 2)
+    # draw ground layer in darker color
+    
+    # color_ground = (int(color[0]*0.3), int(color[1]*0.3), int(color[2]*0.3))
+    color_ground = (int(color[0]), int(color[1]), int(color[2]))
+    
+    ##
+    
+    # for i, j in zip([4, 5, 6, 7], [5, 7, 4, 6]):
+    #     img = cv2.line(img, tuple(img_pts[i]), tuple(img_pts[j]), color_ground, 3)
+    
+    
+    # draw pillars in minor darker color
+    # color_pillar = (int(color[0]*0.6), int(color[1]*0.6), int(color[2]*0.6))
+    color_pillar = (int(color[0]), int(color[1]), int(color[2]))
+    
+    
+    ##
+    # for i, j in zip(range(4), range(4, 8)):
+    #     img = cv2.line(img, tuple(img_pts[i]), tuple(img_pts[j]), color_pillar, 3)
+    # # draw top layer in original color
+    # for i, j in zip([0, 1, 2, 3], [1, 3, 0, 2]):
+    #     img = cv2.line(img, tuple(img_pts[i]), tuple(img_pts[j]), color, 3)
+
+    # draw axes
+    img = cv2.arrowedLine(img, tuple(axes[0]), tuple(axes[1]), (250,218,94), 4)
+    img = cv2.arrowedLine(img, tuple(axes[0]), tuple(axes[3]), (146,52,182), 4)
+    img = cv2.arrowedLine(img, tuple(axes[0]), tuple(axes[2]), (28,28,28), 4) ## y last
+
+    return img
+
 def custom_draw_geometry_with_rotation(pcd):
     def rotate_view(vis):
         opt = vis.get_render_option()
