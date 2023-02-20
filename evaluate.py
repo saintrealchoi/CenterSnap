@@ -50,7 +50,7 @@ def detect(
     if use_gpu:
         model.cuda()
         
-    data_path = open(os.path.join(data_dir, 'Real', 'test_list.txt')).read().splitlines()
+    data_path = open(os.path.join(data_dir, 'Real_inf', 'test_list.txt')).read().splitlines()
     _CAMERA = camera.NOCS_Real()
     min_confidence = 0.50
 
@@ -62,7 +62,7 @@ def detect(
     t_inference = 0.0
   
     for i, img_path in enumerate(tqdm(data_path)):
-        img_full_path = os.path.join(data_dir, 'Real', img_path)
+        img_full_path = os.path.join(data_dir, 'Real_inf', img_path)
         color_path = img_full_path + '_color.png' 
         if not os.path.exists(color_path):
             continue
@@ -104,7 +104,6 @@ def detect(
             _, shape_out = ae(None, emb)
             shape_out = shape_out.cpu().detach().numpy()[0]
             rotated_pc, rotated_box, pred_size = get_gt_pointclouds(abs_pose_outputs[j], shape_out, camera_model = _CAMERA)
-            sRT = abs_pose_outputs[j].camera_T_object @ abs_pose_outputs[j].scale_matrix
             #RT output
             pred_RTs.append(abs_pose_outputs[j].camera_T_object)
             pred_sizes.append(pred_size)
@@ -191,23 +190,13 @@ def evaluate(result_dir):
     messages.append('3D IoU at 50: {:.1f}'.format(iou_acc[-1, iou_50_idx] * 100))
     messages.append('3D IoU at 75: {:.1f}'.format(iou_acc[-1, iou_75_idx] * 100))
     messages.append('5 degree, 5cm: {:.1f}'.format(pose_acc[-1, degree_05_idx, shift_05_idx] * 100))
-    messages.append('5 degree, 2cm: {:.1f}'.format(pose_acc[-1, degree_05_idx, shift_10_idx] * 100))
+    messages.append('5 degree, 10cm: {:.1f}'.format(pose_acc[-1, degree_05_idx, shift_10_idx] * 100))
     messages.append('10 degree, 5cm: {:.1f}'.format(pose_acc[-1, degree_10_idx, shift_05_idx] * 100))
-    messages.append('10 degree, 2cm: {:.1f}'.format(pose_acc[-1, degree_10_idx, shift_10_idx] * 100))
+    messages.append('10 degree, 10cm: {:.1f}'.format(pose_acc[-1, degree_10_idx, shift_10_idx] * 100))
     for msg in messages:
         print(msg)
         fw.write(msg + '\n')
     fw.close()
-    # load NOCS results
-    # pkl_path = os.path.join('results/nocs_results', opt.data, 'mAP_Acc.pkl')
-    # with open(pkl_path, 'rb') as f:
-    #     nocs_results = cPickle.load(f)
-    # nocs_iou_aps = nocs_results['iou_aps'][-1, :]
-    # nocs_pose_aps = nocs_results['pose_aps'][-1, :, :]
-    # iou_aps = np.concatenate((iou_aps, nocs_iou_aps[None, :]), axis=0)
-    # pose_aps = np.concatenate((pose_aps, nocs_pose_aps[None, :, :]), axis=0)
-    # # plot
-    # plot_mAP(iou_aps, pose_aps, result_dir, iou_thres_list, degree_thres_list, shift_thres_list)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
@@ -221,7 +210,7 @@ if __name__ == '__main__':
   print(hparams)
   result_name = hparams.result_name
   path = 'results/'+result_name
-  output_path = pathlib.Path(path) / hparams.app_output
+  output_path = pathlib.Path(path) / hparams.app_output / hparams.checkpoint[-7:-5]
   output_path.mkdir(parents=True, exist_ok=True)
   
   detect(hparams, hparams.data_dir, output_path)
