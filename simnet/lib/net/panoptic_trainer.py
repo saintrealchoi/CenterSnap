@@ -2,6 +2,7 @@ import os
 import copy
 import subprocess
 
+
 os.environ['PYTHONHASHSEED'] = str(1)
 from importlib.machinery import SourceFileLoader
 import random
@@ -117,9 +118,9 @@ class PanopticModel(pl.LightningModule):
     log = {}
     return {'log': log}
   
-  def on_epoch_end(self):
-    subprocess.run(["python","evaluate.py","@configs/inference.txt","--checkpoint","results/_ckpt_epoch_{}.ckpt".format(self.current_epoch)])
-    print()
+  # def on_epoch_end(self):
+  #   subprocess.run(["python","evaluate.py","@configs/inference.txt","--checkpoint","results/_ckpt_epoch_{}.ckpt".format(self.current_epoch)])
+  #   print()
     
   @pl.data_loader
   def train_dataloader(self):

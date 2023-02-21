@@ -29,6 +29,8 @@ from utils.get_ids import get_ids_from_seg
 from utils.nocs_eval_utils_od import load_depth, get_bbox, compute_mAP, plot_mAP
 from tqdm import tqdm
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+
 def get_auto_encoder(model_path):
     emb_dim = 128
     n_pts = 2048
@@ -50,7 +52,7 @@ def detect(
     if use_gpu:
         model.cuda()
         
-    data_path = open(os.path.join(data_dir, 'Real_inf', 'test_list.txt')).read().splitlines()
+    data_path = open(os.path.join(data_dir, 'Real', 'test_list.txt')).read().splitlines()
     _CAMERA = camera.NOCS_Real()
     min_confidence = 0.50
 
